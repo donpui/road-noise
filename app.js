@@ -5,6 +5,9 @@
   const DB_NAME = "roadnoise-data";
   const DB_VERSION = 1;
   const STORE_NAME = "sessions";
+  // A tiny muted video keeps older iOS Safari builds awake when Screen Wake Lock is unavailable.
+  // It is never sent anywhere and contains no audio.
+  const KEEP_AWAKE_VIDEO = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAL/bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAil0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAIAAAACAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAGhbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABTG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAQxzdGJsAAAAqHN0c2QAAAAAAAAAAQAAAJhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAgBIAAAASAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP//AAAAMmF2Y0MBZAAK/+EAGWdkAAqs2V+IiMBEAAADAAQAAAMACDxIllgBAAZo6+PLIsAAAAAQcGFzcAAAAAEAAAABAAAAGHN0dHMAAAAAAAAAAQAAAAEAAEAAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAArcAAAABAAAAFHN0Y28AAAAAAAAAAQAAAy8AAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjU4LjI5LjEwMAAAAAhmcmVlAAACv21kYXQAAAKfBgX//5vcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTUyIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAQZYiEABX//vfJ78Cm69vfgQ==";
 
   const $ = (selector) => document.querySelector(selector);
   const elements = {
@@ -28,7 +31,25 @@
     offsetOutput: $("#offset-output"),
     calibrationReading: $("#calibration-reading"),
     toast: $("#toast"),
+    resultsDialog: $("#results-dialog"),
+    resultsTitle: $("#results-title"),
+    resultsDate: $("#results-date"),
+    resultsAverage: $("#results-average"),
+    resultsP95: $("#results-p95"),
+    resultsMax: $("#results-max"),
+    resultsChart: $("#results-chart"),
+    speedTableBody: $("#speed-table-body"),
+    shareCarName: $("#share-car-name"),
+    shareTrip: $("#share-trip"),
+    shareStatus: $("#share-status"),
+    benchmarkList: $("#benchmark-list"),
+    benchmarkSearch: $("#bench-search"),
+    benchmarkRefresh: $("#bench-refresh"),
+    benchmarkNote: $("#bench-note"),
   };
+
+  const supabaseConfig = window.ROADNOISE_SUPABASE || {};
+  const supabaseReady = Boolean(supabaseConfig.url && supabaseConfig.anonKey);
 
   let dbPromise;
   let audioContext;
@@ -38,6 +59,9 @@
   let sampleTimer;
   let geoWatch;
   let wakeLock;
+  let keepAwakeVideo;
+  let keepAwakeMethod = null;
+  let reviewedSession = null;
   let session = null;
   let rawDb = -100;
   let currentDb = null;
@@ -120,6 +144,54 @@
     return `${hours}:${minutes}:${seconds}`;
   }
 
+  function percentile(values, percentileValue) {
+    if (!values.length) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const index = (sorted.length - 1) * percentileValue;
+    const lower = Math.floor(index);
+    const upper = Math.ceil(index);
+    if (lower === upper) return sorted[lower];
+    return sorted[lower] + (sorted[upper] - sorted[lower]) * (index - lower);
+  }
+
+  function speedBands(data) {
+    const speedSamples = (data.samples || []).filter((sample) => Number.isFinite(sample.speedKmh));
+    const highestSpeed = speedSamples.length ? Math.max(...speedSamples.map((sample) => sample.speedKmh)) : 0;
+    const highestBand = Math.max(10, Math.floor(highestSpeed / 10) * 10 + 10);
+    return Array.from({ length: highestBand / 10 }, (_, index) => {
+      const min = index * 10;
+      const max = (index + 1) * 10;
+      const values = speedSamples.filter((sample) => sample.speedKmh >= min && sample.speedKmh < max).map((sample) => sample.db).filter(Number.isFinite);
+      return {
+        min,
+        max,
+        label: `${min}–${max} km/h`,
+        samples: values.length,
+        averageDb: values.length ? Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)) : null,
+        p95Db: values.length ? Number(percentile(values, .95).toFixed(1)) : null,
+        maxDb: values.length ? Number(Math.max(...values).toFixed(1)) : null,
+      };
+    });
+  }
+
+  async function supabaseRequest(resource, options = {}) {
+    if (!supabaseReady) throw new Error("Public sharing is not configured yet.");
+    const response = await fetch(`${supabaseConfig.url.replace(/\/$/, "")}/rest/v1/${resource}`, {
+      ...options,
+      headers: {
+        apikey: supabaseConfig.anonKey,
+        Authorization: `Bearer ${supabaseConfig.anonKey}`,
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+    });
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(detail || `Supabase request failed (${response.status})`);
+    }
+    return response.status === 204 ? null : response.json();
+  }
+
   function displayLevel(value) {
     if (value == null || !Number.isFinite(value)) return "Waiting for sound";
     if (value < 50) return "Quiet cabin";
@@ -195,12 +267,46 @@
     );
   }
 
-  async function requestWakeLock() {
+  async function requestKeepAwake() {
+    if (keepAwakeMethod === "video" || wakeLock) return true;
+    let videoPlayback;
     try {
-      if ("wakeLock" in navigator) wakeLock = await navigator.wakeLock.request("screen");
+      if (!keepAwakeVideo) {
+        keepAwakeVideo = document.createElement("video");
+        keepAwakeVideo.setAttribute("aria-hidden", "true");
+        keepAwakeVideo.setAttribute("playsinline", "");
+        keepAwakeVideo.muted = true;
+        keepAwakeVideo.loop = true;
+        keepAwakeVideo.preload = "auto";
+        keepAwakeVideo.src = KEEP_AWAKE_VIDEO;
+        keepAwakeVideo.style.cssText = "position:fixed;width:1px;height:1px;opacity:.01;pointer-events:none;left:-10px;bottom:-10px";
+        document.body.append(keepAwakeVideo);
+      }
+      // Called from the Start button path so iOS treats this as user-initiated media.
+      videoPlayback = keepAwakeVideo.play().then(() => true).catch(() => false);
+    } catch {
+      videoPlayback = Promise.resolve(false);
+    }
+    try {
+      if ("wakeLock" in navigator) {
+        wakeLock = await navigator.wakeLock.request("screen");
+        keepAwakeMethod = "native";
+        wakeLock.addEventListener("release", () => {
+          wakeLock = null;
+          if (session && document.visibilityState === "visible") requestKeepAwake();
+        });
+        keepAwakeVideo?.pause();
+        keepAwakeVideo?.remove();
+        keepAwakeVideo = null;
+        return true;
+      }
     } catch {
       wakeLock = null;
     }
+    const videoStarted = await videoPlayback;
+    keepAwakeMethod = videoStarted ? "video" : null;
+    if (!videoStarted) showToast("Screen lock is unavailable. Set iPhone Auto-Lock to Never for long trips.");
+    return videoStarted;
   }
 
   function addSample() {
@@ -291,6 +397,92 @@
     context.stroke();
   }
 
+  function drawResultsChart(data) {
+    const canvas = elements.resultsChart;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = rect.width * ratio;
+    canvas.height = rect.height * ratio;
+    const context = canvas.getContext("2d");
+    context.scale(ratio, ratio);
+    const width = rect.width;
+    const height = rect.height;
+    const padding = { top: 12, right: 12, bottom: 21, left: 31 };
+    const plotWidth = width - padding.left - padding.right;
+    const plotHeight = height - padding.top - padding.bottom;
+    context.clearRect(0, 0, width, height);
+    context.strokeStyle = "rgba(255,255,255,.08)";
+    context.fillStyle = "#66756f";
+    context.font = "9px system-ui";
+    context.textAlign = "right";
+    [40, 70, 100].forEach((value) => {
+      const y = padding.top + ((110 - value) / 80) * plotHeight;
+      context.beginPath();
+      context.moveTo(padding.left, y);
+      context.lineTo(width - padding.right, y);
+      context.stroke();
+      context.fillText(String(value), padding.left - 7, y + 3);
+    });
+    const samples = data.samples || [];
+    if (samples.length < 2) return;
+    const points = samples.map((sample, index) => ({
+      x: padding.left + (index / (samples.length - 1)) * plotWidth,
+      y: padding.top + ((110 - Math.max(30, Math.min(110, sample.db))) / 80) * plotHeight,
+    }));
+    const gradient = context.createLinearGradient(0, padding.top, 0, height);
+    gradient.addColorStop(0, "rgba(184,243,74,.32)");
+    gradient.addColorStop(1, "rgba(184,243,74,0)");
+    context.beginPath();
+    context.moveTo(points[0].x, height - padding.bottom);
+    points.forEach((point) => context.lineTo(point.x, point.y));
+    context.lineTo(points.at(-1).x, height - padding.bottom);
+    context.closePath();
+    context.fillStyle = gradient;
+    context.fill();
+    context.beginPath();
+    points.forEach((point, index) => index ? context.lineTo(point.x, point.y) : context.moveTo(point.x, point.y));
+    context.strokeStyle = "#b8f34a";
+    context.lineWidth = 2;
+    context.lineJoin = "round";
+    context.stroke();
+    context.fillStyle = "#66756f";
+    context.textAlign = "left";
+    context.fillText("START", padding.left, height - 5);
+    context.textAlign = "right";
+    context.fillText(formatDuration(data.durationMs), width - padding.right, height - 5);
+  }
+
+  function showResults(data) {
+    reviewedSession = data;
+    const values = (data.samples || []).map((sample) => sample.db).filter(Number.isFinite);
+    const average = data.summary?.avgDb ?? (values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null);
+    const maximum = data.summary?.maxDb ?? (values.length ? Math.max(...values) : null);
+    elements.resultsTitle.textContent = data.complete ? "Road measurement" : "Recovered measurement";
+    elements.resultsDate.textContent = `${new Date(data.startedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${formatDuration(data.durationMs)}`;
+    elements.resultsAverage.textContent = average == null ? "--" : Math.round(average);
+    elements.resultsP95.textContent = percentile(values, .95) == null ? "--" : Math.round(percentile(values, .95));
+    elements.resultsMax.textContent = maximum == null ? "--" : Math.round(maximum);
+
+    const bins = speedBands(data);
+    elements.speedTableBody.replaceChildren();
+    let withSpeed = 0;
+    bins.forEach((bin) => {
+      withSpeed += bin.samples;
+      const row = document.createElement("tr");
+      row.innerHTML = `<td>${bin.label}</td><td>${bin.samples || "—"}</td><td>${bin.averageDb == null ? "—" : `${Math.round(bin.averageDb)} dB`}</td><td>${bin.p95Db == null ? "—" : `${Math.round(bin.p95Db)} dB`}</td><td>${bin.maxDb == null ? "—" : `${Math.round(bin.maxDb)} dB`}</td>`;
+      elements.speedTableBody.append(row);
+    });
+    if (!withSpeed) {
+      elements.speedTableBody.innerHTML = '<tr><td class="speed-table-empty" colspan="5">No GPS speed samples were recorded for this trip.</td></tr>';
+    }
+    elements.resultsDialog.showModal();
+    elements.shareCarName.value = "";
+    elements.shareStatus.textContent = supabaseReady ? "" : "Public sharing is not configured yet. Add Supabase values to config.js.";
+    elements.shareStatus.classList.toggle("error", !supabaseReady);
+    requestAnimationFrame(() => drawResultsChart(data));
+  }
+
   async function startSession() {
     if (!navigator.mediaDevices?.getUserMedia) {
       showToast("Microphone access requires Safari over HTTPS.");
@@ -333,7 +525,8 @@
       elements.recordButton.disabled = false;
       analyzeAudio();
       sampleTimer = setInterval(addSample, SAMPLE_INTERVAL);
-      await requestWakeLock();
+      const screenAwake = await requestKeepAwake();
+      elements.statusText.textContent = screenAwake ? "Recording trip · screen awake" : "Recording trip · keep screen on";
       saveSession(session).catch(() => {});
     } catch (error) {
       cleanupSensors();
@@ -352,11 +545,15 @@
     mediaStream?.getTracks().forEach((track) => track.stop());
     audioContext?.close().catch(() => {});
     wakeLock?.release().catch(() => {});
+    keepAwakeVideo?.pause();
+    keepAwakeVideo?.remove();
     analyser = null;
     mediaStream = null;
     audioContext = null;
     geoWatch = null;
     wakeLock = null;
+    keepAwakeVideo = null;
+    keepAwakeMethod = null;
   }
 
   async function stopSession() {
@@ -365,14 +562,15 @@
     session.endedAt = new Date().toISOString();
     session.durationMs = Date.now() - session.startedAtMs;
     session.complete = true;
-    cleanupSensors();
-    await saveSession(session);
     const savedSession = session;
     session = null;
+    cleanupSensors();
+    await saveSession(savedSession);
     elements.body.classList.remove("recording");
     elements.recordButton.querySelector("span:last-child").textContent = "START RECORDING";
     elements.statusText.textContent = "Trip saved";
     await renderTrips();
+    showResults(savedSession);
     showToast(`${formatDuration(savedSession.durationMs)} trip saved on this device.`);
   }
 
@@ -401,6 +599,90 @@
     downloadFile(sessionFilename(data, "json"), JSON.stringify(data, null, 2), "application/json");
   }
 
+  async function publishSession(data, carName) {
+    const values = (data.samples || []).map((sample) => sample.db).filter(Number.isFinite);
+    if (!values.length) throw new Error("This trip has no sound samples to publish.");
+    const publicSamples = (data.samples || []).map((sample) => ({
+      elapsedSeconds: sample.elapsedSeconds,
+      db: sample.db,
+      speedKmh: sample.speedKmh,
+      vibrationMs2: sample.vibrationMs2,
+    }));
+    const response = await supabaseRequest("roadnoise_shared", {
+      method: "POST",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        car_name: carName.trim(),
+        duration_seconds: Math.max(1, Math.round(data.durationMs / 1000)),
+        sample_count: publicSamples.length,
+        average_db: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)),
+        p95_db: Number(percentile(values, .95).toFixed(1)),
+        max_db: Number(Math.max(...values).toFixed(1)),
+        speed_bands: speedBands(data),
+        samples: publicSamples,
+      }),
+    });
+    return Array.isArray(response) ? response[0] : response;
+  }
+
+  function publicRecordToSession(record) {
+    return {
+      id: record.id,
+      startedAt: record.created_at,
+      durationMs: record.duration_seconds * 1000,
+      complete: true,
+      samples: record.samples || [],
+      summary: { avgDb: Number(record.average_db), p95Db: Number(record.p95_db), maxDb: Number(record.max_db) },
+    };
+  }
+
+  async function loadSharedRecording(code) {
+    if (!supabaseReady) {
+      showToast("This shared recording needs Supabase configuration.");
+      return;
+    }
+    try {
+      const rows = await supabaseRequest(`roadnoise_shared?select=id,created_at,duration_seconds,average_db,p95_db,max_db,samples&share_code=eq.${encodeURIComponent(code)}&limit=1`);
+      if (!rows?.length) throw new Error("Shared recording not found.");
+      showResults(publicRecordToSession(rows[0]));
+    } catch (error) {
+      showToast(error.message || "Could not load the shared recording.");
+    }
+  }
+
+  async function renderBenchmark() {
+    elements.benchmarkList.replaceChildren();
+    if (!supabaseReady) {
+      elements.benchmarkNote.textContent = "Benchmark sharing is ready, but this deployment has no Supabase configuration yet.";
+      elements.benchmarkList.innerHTML = '<div class="empty-state"><strong>Public benchmark unavailable</strong>Add the project URL and publishable key to config.js, then redeploy.</div>';
+      return;
+    }
+    try {
+      const records = await supabaseRequest("roadnoise_shared?select=id,share_code,car_name,created_at,duration_seconds,sample_count,average_db,p95_db,max_db&order=created_at.desc&limit=100");
+      const filter = elements.benchmarkSearch.value.trim().toLowerCase();
+      const filtered = records.filter((record) => !filter || record.car_name.toLowerCase().includes(filter));
+      elements.benchmarkNote.textContent = `${filtered.length} public measurement${filtered.length === 1 ? "" : "s"} · GPS coordinates are never published.`;
+      if (!filtered.length) {
+        elements.benchmarkList.innerHTML = '<div class="empty-state"><strong>No matching measurements</strong>Be the first to publish a trip.</div>';
+        return;
+      }
+      filtered.forEach((record) => {
+        const card = document.createElement("article");
+        card.className = "benchmark-card";
+        card.innerHTML = `<div class="benchmark-card-head"><div><h2></h2><time></time></div><span class="sample-count">${record.sample_count} samples</span></div><div class="benchmark-stats"><div><span>AVERAGE</span><strong>${Math.round(record.average_db)} dB</strong></div><div><span>P95</span><strong>${Math.round(record.p95_db)} dB</strong></div><div><span>MAXIMUM</span><strong>${Math.round(record.max_db)} dB</strong></div></div><button class="share-link" type="button">VIEW RECORDING</button>`;
+        card.querySelector("h2").textContent = record.car_name;
+        card.querySelector("time").textContent = new Date(record.created_at).toLocaleDateString([], { dateStyle: "medium" });
+        card.querySelector(".share-link").addEventListener("click", () => {
+          window.location.href = `${window.location.pathname}?share=${encodeURIComponent(record.share_code)}`;
+        });
+        elements.benchmarkList.append(card);
+      });
+    } catch (error) {
+      elements.benchmarkNote.textContent = "Could not load public measurements.";
+      elements.benchmarkList.innerHTML = `<div class="empty-state"><strong>Benchmark temporarily unavailable</strong>${error.message || "Try again in a moment."}</div>`;
+    }
+  }
+
   async function renderTrips() {
     const sessions = (await getSessions()).sort((a, b) => b.startedAtMs - a.startedAtMs);
     elements.tripList.replaceChildren();
@@ -417,9 +699,10 @@
       card.innerHTML = `
         <div class="trip-card-head"><div><h2>${data.complete ? "Road measurement" : "Recovered measurement"}</h2><time datetime="${data.startedAt}">${date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</time></div></div>
         <div class="trip-card-stats"><div><span>DURATION</span><strong>${formatDuration(data.durationMs)}</strong></div><div><span>AVERAGE</span><strong>${average} dB</strong></div><div><span>MAXIMUM</span><strong>${max} dB</strong></div></div>
-        <div class="trip-actions"><button type="button" data-action="csv">DOWNLOAD CSV</button><button type="button" data-action="json">DOWNLOAD JSON</button><button class="delete-trip" type="button" data-action="delete" aria-label="Delete trip">×</button></div>`;
+        <div class="trip-actions"><button type="button" data-action="review">REVIEW</button><button type="button" data-action="csv">CSV</button><button type="button" data-action="json">JSON</button><button class="delete-trip" type="button" data-action="delete" aria-label="Delete trip">×</button></div>`;
       card.addEventListener("click", async (event) => {
         const action = event.target.closest("button")?.dataset.action;
+        if (action === "review") showResults(data);
         if (action === "csv") exportCsv(data);
         if (action === "json") exportJson(data);
         if (action === "delete") {
@@ -436,6 +719,7 @@
     document.querySelectorAll(".view").forEach((view) => view.classList.toggle("active", view.id === `${name}-view`));
     document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
     if (name === "trips") renderTrips();
+    if (name === "bench") renderBenchmark();
     if (name === "meter") requestAnimationFrame(drawChart);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -452,6 +736,40 @@
     elements.offset.value = "100";
     elements.offset.dispatchEvent(new Event("input"));
   });
+  $("#results-csv").addEventListener("click", () => reviewedSession && exportCsv(reviewedSession));
+  $("#results-json").addEventListener("click", () => reviewedSession && exportJson(reviewedSession));
+  elements.shareTrip.addEventListener("click", async () => {
+    if (!reviewedSession) return;
+    const carName = elements.shareCarName.value.trim();
+    if (!carName) {
+      elements.shareStatus.textContent = "Enter a car name to publish this trip.";
+      elements.shareStatus.classList.add("error");
+      elements.shareCarName.focus();
+      return;
+    }
+    if (!supabaseReady) {
+      elements.shareStatus.textContent = "Public sharing is not configured for this deployment yet.";
+      elements.shareStatus.classList.add("error");
+      return;
+    }
+    elements.shareTrip.disabled = true;
+    elements.shareStatus.classList.remove("error");
+    elements.shareStatus.textContent = "Publishing…";
+    try {
+      const record = await publishSession(reviewedSession, carName);
+      const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(record.share_code)}`;
+      elements.shareStatus.textContent = `Published: ${shareUrl}`;
+      try { await navigator.clipboard.writeText(shareUrl); showToast("Share link copied."); } catch { showToast("Trip published."); }
+      await renderBenchmark();
+    } catch (error) {
+      elements.shareStatus.textContent = error.message || "Could not publish this trip.";
+      elements.shareStatus.classList.add("error");
+    } finally {
+      elements.shareTrip.disabled = false;
+    }
+  });
+  elements.benchmarkRefresh.addEventListener("click", () => renderBenchmark());
+  elements.benchmarkSearch.addEventListener("input", () => renderBenchmark());
   elements.dialog.addEventListener("close", () => {
     if (elements.dialog.returnValue === "save") {
       localStorage.setItem("roadnoise-calibration", String(calibrationOffset));
@@ -464,9 +782,12 @@
     }
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && session && !wakeLock) requestWakeLock();
+    if (document.visibilityState === "visible" && session && !wakeLock && keepAwakeMethod !== "video") requestKeepAwake();
   });
-  window.addEventListener("resize", drawChart);
+  window.addEventListener("resize", () => {
+    drawChart();
+    if (reviewedSession && elements.resultsDialog.open) drawResultsChart(reviewedSession);
+  });
   window.addEventListener("beforeunload", () => {
     if (session) saveSession(session).catch(() => {});
   });
@@ -474,5 +795,7 @@
   elements.offset.value = String(calibrationOffset);
   elements.offsetOutput.textContent = `+${calibrationOffset} dB`;
   renderTrips();
+  const sharedCode = new URLSearchParams(window.location.search).get("share");
+  if (sharedCode) loadSharedRecording(sharedCode);
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
 })();
