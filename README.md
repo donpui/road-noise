@@ -16,8 +16,11 @@ Open `http://localhost:8080`. Testing microphone, motion, and GPS on iPhone requ
 
 1. Create a GitHub repository and push these files to its `main` branch.
 2. Open **Settings → Pages** in GitHub.
-3. Set **Source** to **GitHub Actions**.
-4. Open the URL shown by the `Deploy to GitHub Pages` workflow.
+3. Under **Build and deployment**, set **Source** to **GitHub Actions**, then save.
+4. Open the **Actions** tab and rerun the workflow (or push another commit).
+5. Open the URL shown by the `Deploy to GitHub Pages` workflow.
+
+The Pages setting must be enabled once before the first deployment. Otherwise `configure-pages` reports `HttpError: Not Found` because the repository does not have a Pages site yet.
 
 On iPhone, open that URL in Safari. Use **Share → Add to Home Screen** for an app-like experience.
 
