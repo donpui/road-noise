@@ -8,8 +8,25 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="RoadNoise" />
     <meta name="description" content="Measure and record cabin noise, speed, and road vibration on your device." />
+    <meta name="keywords" content="car noise meter, cabin noise, road noise, decibel meter, sound level recorder, iPhone sound meter, vehicle vibration" />
+    <meta name="author" content="RoadNoise" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta name="application-name" content="RoadNoise" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="RoadNoise" />
+    <meta property="og:title" content="RoadNoise — Measure your car’s cabin noise" />
+    <meta property="og:description" content="Record estimated sound level, GPS speed, and road vibration from your phone while you drive." />
+    <meta property="og:image" content="./logo.svg" />
+    <meta property="og:image:alt" content="RoadNoise car noise measurement logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="RoadNoise — Car noise meter" />
+    <meta name="twitter:description" content="Measure and record cabin noise, speed, and road vibration in a private, installable web app." />
+    <meta name="twitter:image" content="./logo.svg" />
     <link rel="manifest" href="./manifest.webmanifest" />
-    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="canonical" href="./" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="alternate icon" href="./icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./icon.svg" />
     <link rel="stylesheet" href="./styles.css" />
     <title>RoadNoise</title>
@@ -99,6 +116,20 @@
     </dialog>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "RoadNoise",
+        "alternateName": "RoadNoise Car Noise Meter",
+        "description": "A privacy-first web app for measuring and recording car cabin noise, GPS speed, and road vibration.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "iOS, Android, macOS, Windows",
+        "browserRequirements": "Requires a modern browser with microphone support",
+        "isAccessibleForFree": true,
+        "featureList": ["Live sound level estimate", "Trip recording", "GPS speed tracking", "Accelerometer vibration tracking", "CSV and JSON export"]
+      }
+    </script>
     <script src="./app.js" defer></script>
   </body>
 </html>

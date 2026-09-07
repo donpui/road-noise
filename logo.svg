@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">RoadNoise</title>
+  <desc id="desc">Measure and record car cabin noise.</desc>
+  <rect width="1200" height="630" fill="#07100e"/>
+  <circle cx="920" cy="120" r="330" fill="#12221e" opacity=".75"/>
+  <circle cx="920" cy="120" r="200" fill="#18352a" opacity=".5"/>
+  <g transform="translate(118 188)">
+    <rect x="0" y="80" width="20" height="58" rx="10" fill="#b8f34a"/>
+    <rect x="36" y="38" width="20" height="100" rx="10" fill="#b8f34a"/>
+    <rect x="72" y="0" width="20" height="138" rx="10" fill="#b8f34a"/>
+    <rect x="108" y="58" width="20" height="80" rx="10" fill="#b8f34a"/>
+  </g>
+  <text x="118" y="410" fill="#f4f7f5" font-family="Arial, Helvetica, sans-serif" font-size="82" font-weight="800" letter-spacing="13">ROADNOISE</text>
+  <text x="123" y="472" fill="#9eafa8" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="600" letter-spacing="3">A PRIVATE CAR CABIN NOISE METER</text>
+  <path d="M118 520h964" stroke="#b8f34a" stroke-width="5" stroke-linecap="round" opacity=".8"/>
+</svg>
