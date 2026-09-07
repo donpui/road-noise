@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#08110f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="RoadNoise" />
+    <meta name="description" content="Measure and record cabin noise, speed, and road vibration on your device." />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>RoadNoise</title>
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#meter" aria-label="RoadNoise home">
+          <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span>ROADNOISE</span>
+        </a>
+        <button class="icon-button" id="settings-button" type="button" aria-label="Open calibration settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Z"/><path d="M19.4 13.5a7.8 7.8 0 0 0 .05-3l2-1.55-2-3.46-2.48 1a8.3 8.3 0 0 0-2.57-1.5L14 2.35h-4l-.4 2.64a8.3 8.3 0 0 0-2.57 1.5l-2.48-1-2 3.46 2 1.55a7.8 7.8 0 0 0 .05 3l-2.05 1.55 2 3.46 2.5-1a8.2 8.2 0 0 0 2.55 1.47l.4 2.67h4l.4-2.67a8.2 8.2 0 0 0 2.55-1.47l2.5 1 2-3.46-2.05-1.55Z"/></svg>
+        </button>
+      </header>
+
+      <main>
+        <section class="view active" id="meter-view" aria-labelledby="meter-title">
+          <div class="status-row">
+            <div>
+              <p class="eyebrow" id="meter-title">CABIN SOUND</p>
+              <p class="session-status"><span class="status-dot"></span><span id="status-text">Ready to measure</span></p>
+            </div>
+            <div class="timer" id="timer">00:00:00</div>
+          </div>
+
+          <div class="meter-card">
+            <div class="live-badge"><span></span>LIVE</div>
+            <div class="reading-wrap">
+              <output id="db-reading" aria-label="Current noise level">--</output>
+              <div class="reading-unit"><strong>dB</strong><span>estimated</span></div>
+            </div>
+            <div class="level-label" id="level-label">Tap start to begin</div>
+            <div class="gauge" aria-hidden="true"><div class="gauge-fill" id="gauge-fill"></div></div>
+            <div class="gauge-labels"><span>30</span><span>60</span><span>90</span><span>120+</span></div>
+            <p class="calibration-note">Estimated sound pressure level · <button type="button" id="calibrate-link">calibrate</button></p>
+          </div>
+
+          <button class="primary-button" id="record-button" type="button"><span class="record-symbol"></span><span>START RECORDING</span></button>
+          <p class="privacy-copy">Audio is analyzed live and never saved. Trip data stays on this device.</p>
+
+          <div class="stats-grid">
+            <article><span class="stat-icon speed-icon">↗</span><div><p>SPEED</p><strong id="speed-reading">--</strong><span>km/h</span></div></article>
+            <article><span class="stat-icon">〰</span><div><p>VIBRATION</p><strong id="motion-reading">--</strong><span>m/s²</span></div></article>
+            <article><span class="stat-icon">↓</span><div><p>MIN</p><strong id="min-reading">--</strong><span>dB</span></div></article>
+            <article><span class="stat-icon">↑</span><div><p>MAX</p><strong id="max-reading">--</strong><span>dB</span></div></article>
+          </div>
+
+          <section class="chart-card" aria-labelledby="chart-title">
+            <div class="chart-header"><div><p class="eyebrow" id="chart-title">LIVE HISTORY</p><span>Last 90 seconds</span></div><strong id="avg-reading">AVG -- dB</strong></div>
+            <div class="chart-wrap"><canvas id="noise-chart"></canvas><div class="empty-chart" id="empty-chart">Your noise trace will appear here</div></div>
+          </section>
+
+        </section>
+
+        <section class="view" id="trips-view" aria-labelledby="trips-title">
+          <div class="page-heading"><p class="eyebrow">YOUR DATA</p><h1 id="trips-title">Recorded trips</h1><p>Review past measurements and export the raw samples.</p></div>
+          <div class="trip-list" id="trip-list"></div>
+        </section>
+
+        <section class="view" id="about-view" aria-labelledby="about-title">
+          <div class="page-heading"><p class="eyebrow">GOOD MEASUREMENTS</p><h1 id="about-title">Before you drive</h1></div>
+          <div class="info-card"><span>1</span><div><h2>Mount the phone</h2><p>Use the same stable position for every test. Keep the microphone uncovered and away from direct airflow.</p></div></div>
+          <div class="info-card"><span>2</span><div><h2>Start while parked</h2><p>Grant permissions and start the recording before moving. Never interact with the phone while driving.</p></div></div>
+          <div class="info-card"><span>3</span><div><h2>Compare like with like</h2><p>Use the same road, speed, tires, weather, HVAC setting, and phone position for meaningful comparisons.</p></div></div>
+          <div class="accuracy-card"><h2>About the dB reading</h2><p>A browser cannot access the iPhone microphone's factory calibration. RoadNoise converts the digital signal to an estimated SPL using a calibration offset. Compare it with a trusted sound meter and adjust the offset for better accuracy.</p></div>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary navigation">
+        <button class="nav-item active" data-view="meter" type="button"><svg viewBox="0 0 24 24"><path d="M4 15a8 8 0 0 1 16 0"/><path d="m12 15 4-4"/><circle cx="12" cy="15" r="1"/></svg><span>Meter</span></button>
+        <button class="nav-item" data-view="trips" type="button"><svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19V3"/></svg><span>Trips</span></button>
+        <button class="nav-item" data-view="about" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg><span>Guide</span></button>
+      </nav>
+    </div>
+
+    <dialog id="settings-dialog">
+      <form method="dialog">
+        <div class="dialog-head"><div><p class="eyebrow">CALIBRATION</p><h2>Sound level offset</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+        <p>Place this phone beside a trusted sound meter in a steady sound field. Adjust the offset until both readings match.</p>
+        <label for="calibration-offset">Calibration offset <output id="offset-output">+100 dB</output></label>
+        <input id="calibration-offset" type="range" min="80" max="130" step="0.5" value="100" />
+        <div class="dialog-reading"><span>Current estimate</span><strong><span id="calibration-reading">--</span> dB</strong></div>
+        <button class="secondary-button" id="reset-calibration" type="button">Reset to +100 dB</button>
+        <button class="primary-button compact" value="save">SAVE CALIBRATION</button>
+      </form>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="./app.js" defer></script>
+  </body>
+</html>

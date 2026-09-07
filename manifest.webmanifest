@@ -1,0 +1,14 @@
+{
+  "name": "RoadNoise — Car Noise Meter",
+  "short_name": "RoadNoise",
+  "description": "Measure and record cabin noise, speed, and road vibration.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07100e",
+  "theme_color": "#08110f",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
