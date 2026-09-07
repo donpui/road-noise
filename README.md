@@ -12,6 +12,8 @@ python3 -m http.server 8080
 
 Open `http://localhost:8080`. Testing microphone, motion, and GPS on iPhone requires HTTPS, so the deployed GitHub Pages URL is the simplest test target.
 
+The checked-in CSV in [`example/`](./example/) keeps the original measurement values but has blank latitude, longitude, and GPS accuracy fields so it cannot identify the original recording location.
+
 ## Deploy to GitHub Pages
 
 1. Create a GitHub repository and push these files to its `main` branch.
