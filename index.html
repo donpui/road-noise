@@ -77,6 +77,7 @@
 
           <section class="chart-card" aria-labelledby="chart-title">
             <div class="chart-header"><div><p class="eyebrow" id="chart-title">LIVE HISTORY</p><span>Last 90 seconds</span></div><strong id="avg-reading">AVG -- dB</strong></div>
+            <div class="chart-legend"><span><i class="noise-key"></i>Noise · dB</span><span><i class="speed-key"></i>Speed · km/h</span></div>
             <div class="chart-wrap"><canvas id="noise-chart"></canvas><div class="empty-chart" id="empty-chart">Your noise trace will appear here</div></div>
           </section>
 
@@ -133,11 +134,11 @@
           <div><span>P95</span><strong id="results-p95">--</strong><small>dB</small></div>
           <div><span>MAXIMUM</span><strong id="results-max">--</strong><small>dB</small></div>
         </div>
-        <div class="results-chart-wrap"><canvas id="results-chart"></canvas></div>
+        <div class="chart-legend results-legend"><span><i class="noise-key"></i>Noise · dB</span><span><i class="speed-key"></i>Speed · km/h</span></div><div class="results-chart-wrap"><canvas id="results-chart"></canvas></div>
         <div class="results-section-head"><div><p class="eyebrow">NOISE BY SPEED</p><span>10 km/h bands · only samples with GPS speed are included</span></div></div>
         <div class="speed-table-wrap"><table class="speed-table"><thead><tr><th>Speed</th><th>Samples</th><th>Average</th><th>P95</th><th>Max</th></tr></thead><tbody id="speed-table-body"></tbody></table></div>
         <div class="results-actions"><button class="secondary-button" id="results-csv" type="button">DOWNLOAD CSV</button><button class="primary-button compact" id="results-json" type="button">DOWNLOAD JSON</button></div>
-        <div class="share-box"><p class="eyebrow">SHARE THIS TRIP</p><p>Publish the measurement without GPS coordinates. Your car name is the only required input.</p><div class="share-row"><input id="share-car-name" maxlength="80" placeholder="Car name, e.g. 2021 Mazda 3" autocomplete="off" /><button class="primary-button compact" id="share-trip" type="button">PUBLISH</button></div><p class="share-status" id="share-status" role="status"></p></div>
+        <div class="share-box"><p class="eyebrow">SHARE THIS TRIP</p><p>Publish the measurement without GPS coordinates. Your car name is the only required input.</p><div class="share-row"><input id="share-car-name" maxlength="80" placeholder="Car name, e.g. 2025 Toyota Sienna" autocomplete="off" /><button class="primary-button compact" id="share-trip" type="button">PUBLISH</button></div><div class="share-result" id="share-result" hidden><input id="share-url" type="text" readonly aria-label="Published share link" /><button class="secondary-button compact" id="share-copy" type="button">COPY LINK</button></div><p class="share-status" id="share-status" role="status"></p></div>
       </form>
     </dialog>
 

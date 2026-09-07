@@ -41,6 +41,9 @@
     speedTableBody: $("#speed-table-body"),
     shareCarName: $("#share-car-name"),
     shareTrip: $("#share-trip"),
+    shareResult: $("#share-result"),
+    shareUrl: $("#share-url"),
+    shareCopy: $("#share-copy"),
     shareStatus: $("#share-status"),
     benchmarkList: $("#benchmark-list"),
     benchmarkSearch: $("#bench-search"),
@@ -67,6 +70,7 @@
   let currentDb = null;
   let latestPosition = {};
   let latestMotion = null;
+  let recentDbReadings = [];
   let calibrationOffset = Number(localStorage.getItem("roadnoise-calibration") || 100);
   let toastTimer;
 
@@ -211,11 +215,14 @@
     rawDb = rms > 0.00001 ? 20 * Math.log10(rms) : -100;
     currentDb = Math.max(20, Math.min(130, rawDb + calibrationOffset));
 
-    const rounded = Math.round(currentDb);
+    recentDbReadings.push(currentDb);
+    if (recentDbReadings.length > 90) recentDbReadings.shift();
+    const stableDb = percentile(recentDbReadings, .5);
+    const rounded = Math.round(stableDb);
     elements.db.textContent = rounded;
     elements.calibrationReading.textContent = rounded;
-    elements.level.textContent = displayLevel(currentDb);
-    elements.gauge.style.width = `${Math.max(0, Math.min(100, ((currentDb - 30) / 90) * 100))}%`;
+    elements.level.textContent = displayLevel(stableDb);
+    elements.gauge.style.width = `${Math.max(0, Math.min(100, ((stableDb - 30) / 90) * 100))}%`;
     animationFrame = requestAnimationFrame(analyzeAudio);
   }
 
@@ -249,15 +256,17 @@
     if (!("geolocation" in navigator)) return;
     geoWatch = navigator.geolocation.watchPosition(
       ({ coords }) => {
+        const gpsAccuracy = Number(coords.accuracy);
+        const usableSpeed = Number.isFinite(gpsAccuracy) && gpsAccuracy <= 30 && Number.isFinite(coords.speed) && coords.speed >= 0 ? coords.speed : null;
         latestPosition = {
           latitude: coords.latitude,
           longitude: coords.longitude,
-          accuracy: coords.accuracy,
+          accuracy: gpsAccuracy,
           altitude: coords.altitude,
           heading: coords.heading,
-          speed: coords.speed,
+          speed: usableSpeed,
         };
-        const kmh = coords.speed == null ? null : Math.max(0, coords.speed * 3.6);
+        const kmh = usableSpeed == null ? null : Math.max(0, usableSpeed * 3.6);
         elements.speed.textContent = kmh == null ? "--" : Math.round(kmh);
       },
       () => {
@@ -315,7 +324,7 @@
     const sample = {
       timestamp: new Date(now).toISOString(),
       elapsedSeconds: Math.round((now - session.startedAtMs) / 1000),
-      db: Number(currentDb.toFixed(1)),
+      db: Number((recentDbReadings.length ? percentile(recentDbReadings, .5) : currentDb).toFixed(1)),
       dbfs: Number(rawDb.toFixed(1)),
       speedKmh: latestPosition.speed == null ? null : Number((Math.max(0, latestPosition.speed) * 3.6).toFixed(1)),
       vibrationMs2: latestMotion == null ? null : Number(latestMotion.toFixed(3)),
@@ -343,6 +352,43 @@
     drawChart();
   }
 
+  function getSpeedScale(samples) {
+    const speeds = samples.map((sample) => Number(sample.speedKmh)).filter(Number.isFinite);
+    if (!speeds.length) return null;
+    return Math.max(40, Math.ceil(Math.max(...speeds) / 20) * 20);
+  }
+
+  function drawSpeedTrace(context, samples, padding, plotWidth, plotHeight, width, height, denominator) {
+    const speedMax = getSpeedScale(samples);
+    if (!speedMax) return;
+    let started = false;
+    context.beginPath();
+    samples.forEach((sample, index) => {
+      const speed = Number(sample.speedKmh);
+      if (!Number.isFinite(speed)) {
+        started = false;
+        return;
+      }
+      const x = padding.left + (index / denominator) * plotWidth;
+      const y = padding.top + (1 - Math.min(speedMax, Math.max(0, speed)) / speedMax) * plotHeight;
+      if (started) context.lineTo(x, y);
+      else context.moveTo(x, y);
+      started = true;
+    });
+    context.strokeStyle = "#62c7dc";
+    context.lineWidth = 1.8;
+    context.setLineDash([4, 3]);
+    context.lineJoin = "round";
+    context.stroke();
+    context.setLineDash([]);
+    context.fillStyle = "#62c7dc";
+    context.font = "8px system-ui";
+    context.textAlign = "left";
+    context.fillText(String(speedMax), width - padding.right + 6, padding.top + 3);
+    context.fillText(String(Math.round(speedMax / 2)), width - padding.right + 6, padding.top + plotHeight / 2 + 3);
+    context.fillText("0", width - padding.right + 6, height - padding.bottom + 3);
+  }
+
   function drawChart() {
     const canvas = elements.chart;
     const rect = canvas.getBoundingClientRect();
@@ -354,7 +400,7 @@
     context.scale(ratio, ratio);
     const width = rect.width;
     const height = rect.height;
-    const padding = { top: 7, right: 5, bottom: 12, left: 27 };
+    const padding = { top: 7, right: 34, bottom: 12, left: 27 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
 
@@ -395,6 +441,7 @@
     context.lineWidth = 2;
     context.lineJoin = "round";
     context.stroke();
+    drawSpeedTrace(context, samples, padding, plotWidth, plotHeight, width, height, Math.max(89, samples.length - 1));
   }
 
   function drawResultsChart(data) {
@@ -408,7 +455,7 @@
     context.scale(ratio, ratio);
     const width = rect.width;
     const height = rect.height;
-    const padding = { top: 12, right: 12, bottom: 21, left: 31 };
+    const padding = { top: 12, right: 41, bottom: 21, left: 31 };
     const plotWidth = width - padding.left - padding.right;
     const plotHeight = height - padding.top - padding.bottom;
     context.clearRect(0, 0, width, height);
@@ -446,6 +493,7 @@
     context.lineWidth = 2;
     context.lineJoin = "round";
     context.stroke();
+    drawSpeedTrace(context, samples, padding, plotWidth, plotHeight, width, height, samples.length - 1);
     context.fillStyle = "#66756f";
     context.textAlign = "left";
     context.fillText("START", padding.left, height - 5);
@@ -478,6 +526,8 @@
     }
     elements.resultsDialog.showModal();
     elements.shareCarName.value = "";
+    elements.shareResult.hidden = true;
+    elements.shareUrl.value = "";
     elements.shareStatus.textContent = supabaseReady ? "" : "Public sharing is not configured yet. Add Supabase values to config.js.";
     elements.shareStatus.classList.toggle("error", !supabaseReady);
     requestAnimationFrame(() => drawResultsChart(data));
@@ -519,6 +569,7 @@
         samples: [],
         summary: null,
       };
+      recentDbReadings = [];
       elements.body.classList.add("recording");
       elements.recordButton.querySelector("span:last-child").textContent = "STOP & SAVE";
       elements.statusText.textContent = "Recording trip";
@@ -758,6 +809,8 @@
     try {
       const record = await publishSession(reviewedSession, carName);
       const shareUrl = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(record.share_code)}`;
+      elements.shareUrl.value = shareUrl;
+      elements.shareResult.hidden = false;
       elements.shareStatus.textContent = `Published: ${shareUrl}`;
       try { await navigator.clipboard.writeText(shareUrl); showToast("Share link copied."); } catch { showToast("Trip published."); }
       await renderBenchmark();
@@ -767,6 +820,28 @@
     } finally {
       elements.shareTrip.disabled = false;
     }
+  });
+  elements.shareCopy.addEventListener("click", async () => {
+    const shareUrl = elements.shareUrl.value;
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast("Share link copied.");
+    } catch {
+      elements.shareUrl.focus();
+      elements.shareUrl.select();
+      showToast("Select and copy the link.");
+    }
+  });
+  elements.shareCarName.addEventListener("focus", () => {
+    window.setTimeout(() => {
+      elements.shareCarName.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      const inputRect = elements.shareCarName.getBoundingClientRect();
+      const dialogRect = elements.resultsDialog.getBoundingClientRect();
+      if (inputRect.bottom > dialogRect.bottom - 24) {
+        elements.resultsDialog.scrollTop += inputRect.bottom - dialogRect.bottom + 44;
+      }
+    }, 180);
   });
   elements.benchmarkRefresh.addEventListener("click", () => renderBenchmark());
   elements.benchmarkSearch.addEventListener("input", () => renderBenchmark());
