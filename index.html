@@ -50,7 +50,7 @@
               <p class="eyebrow" id="meter-title">CABIN SOUND</p>
               <p class="session-status"><span class="status-dot"></span><span id="status-text">Ready to measure</span></p>
             </div>
-            <div class="timer" id="timer">00:00:00</div>
+            <div class="status-actions"><div class="timer" id="timer">00:00:00</div><button class="wake-button" id="wake-button" type="button" hidden>KEEP SCREEN AWAKE</button></div>
           </div>
 
           <div class="meter-card">
@@ -99,7 +99,7 @@
           <div class="page-heading"><p class="eyebrow">GOOD MEASUREMENTS</p><h1 id="about-title">Before you drive</h1></div>
           <div class="info-card"><span>1</span><div><h2>Mount the phone</h2><p>Use the same stable position for every test. Keep the microphone uncovered and away from direct airflow.</p></div></div>
           <div class="info-card"><span>2</span><div><h2>Start while parked</h2><p>Grant permissions and start the recording before moving. Never interact with the phone while driving.</p></div></div>
-          <div class="info-card"><span>3</span><div><h2>Keep the screen awake</h2><p>RoadNoise requests screen wake lock and has an iPhone fallback. If the screen still sleeps, set Settings → Display & Brightness → Auto-Lock to Never for the trip.</p></div></div>
+          <div class="info-card"><span>3</span><div><h2>Keep the screen awake</h2><p>RoadNoise requests wake lock directly from the Start tap. If KEEP SCREEN AWAKE appears, tap it while parked. If iOS still sleeps, set Settings → Display & Brightness → Auto-Lock to Never for the trip.</p></div></div>
           <div class="info-card"><span>4</span><div><h2>Compare like with like</h2><p>Use the same road, speed, tires, weather, HVAC setting, and phone position for meaningful comparisons.</p></div></div>
           <div class="accuracy-card"><h2>About the dB reading</h2><p>A browser cannot access the iPhone microphone's factory calibration. RoadNoise converts the digital signal to an estimated SPL using a calibration offset. Compare it with a trusted sound meter and adjust the offset for better accuracy.</p></div>
         </section>
@@ -115,8 +115,11 @@
 
     <dialog id="settings-dialog">
       <form method="dialog">
-        <div class="dialog-head"><div><p class="eyebrow">CALIBRATION</p><h2>Sound level offset</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
+        <div class="dialog-head"><div><p class="eyebrow">SETTINGS</p><h2>Sound level & device</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
         <p>Place this phone beside a trusted sound meter in a steady sound field. Adjust the offset until both readings match.</p>
+        <label for="device-label">Recording device</label>
+        <input class="device-input" id="device-label" type="text" maxlength="80" autocomplete="off" />
+        <p class="field-note">Use the automatic label or enter the exact phone model for later comparisons.</p>
         <label for="calibration-offset">Calibration offset <output id="offset-output">+100 dB</output></label>
         <input id="calibration-offset" type="range" min="80" max="130" step="0.5" value="100" />
         <div class="dialog-reading"><span>Current estimate</span><strong><span id="calibration-reading">--</span> dB</strong></div>
@@ -129,6 +132,7 @@
       <form method="dialog">
         <div class="dialog-head"><div><p class="eyebrow">TRIP REVIEW</p><h2 id="results-title">Road measurement</h2></div><button class="close-button" value="cancel" aria-label="Close">×</button></div>
         <p class="results-date" id="results-date"></p>
+        <p class="results-device" id="results-device"></p>
         <div class="results-summary">
           <div><span>AVERAGE</span><strong id="results-average">--</strong><small>dB</small></div>
           <div><span>P95</span><strong id="results-p95">--</strong><small>dB</small></div>
@@ -138,7 +142,7 @@
         <div class="results-section-head"><div><p class="eyebrow">NOISE BY SPEED</p><span>10 km/h bands · only samples with GPS speed are included</span></div></div>
         <div class="speed-table-wrap"><table class="speed-table"><thead><tr><th>Speed</th><th>Samples</th><th>Average</th><th>P95</th><th>Max</th></tr></thead><tbody id="speed-table-body"></tbody></table></div>
         <div class="results-actions"><button class="secondary-button" id="results-csv" type="button">DOWNLOAD CSV</button><button class="primary-button compact" id="results-json" type="button">DOWNLOAD JSON</button></div>
-        <div class="share-box"><p class="eyebrow">SHARE THIS TRIP</p><p>Publish the measurement without GPS coordinates. Your car name is the only required input.</p><div class="share-row"><input id="share-car-name" maxlength="80" placeholder="Car name, e.g. 2025 Toyota Sienna" autocomplete="off" /><button class="primary-button compact" id="share-trip" type="button">PUBLISH</button></div><div class="share-result" id="share-result" hidden><input id="share-url" type="text" readonly aria-label="Published share link" /><button class="secondary-button compact" id="share-copy" type="button">COPY LINK</button></div><p class="share-status" id="share-status" role="status"></p></div>
+        <div class="share-box"><p class="eyebrow">SHARE THIS TRIP</p><p>Publish the measurement without GPS coordinates. The recording-device label is included for comparisons; your car name is the only required input.</p><div class="share-row"><input id="share-car-name" maxlength="80" placeholder="Car name, e.g. 2025 Toyota Sienna" autocomplete="off" /><button class="primary-button compact" id="share-trip" type="button">PUBLISH</button></div><div class="share-result" id="share-result" hidden><input id="share-url" type="text" readonly aria-label="Published share link" /><button class="secondary-button compact" id="share-copy" type="button">COPY LINK</button></div><p class="share-status" id="share-status" role="status"></p></div>
       </form>
     </dialog>
 

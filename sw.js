@@ -1,4 +1,4 @@
-const CACHE_NAME = "roadnoise-v4";
+const CACHE_NAME = "roadnoise-v5";
 const APP_FILES = ["./", "./index.html", "./styles.css", "./app.js", "./config.js", "./manifest.webmanifest", "./icon.svg", "./favicon.svg", "./logo.svg", "./robots.txt"];
 
 self.addEventListener("install", (event) => {

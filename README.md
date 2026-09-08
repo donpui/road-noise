@@ -34,18 +34,22 @@ Web browsers expose microphone samples but do not provide the microphone's facto
 - keep the microphone opening clear and away from vents;
 - calibrate beside a trusted sound-level meter in a steady sound field;
 - start recording while parked, then leave the phone alone while driving;
+- tap **KEEP SCREEN AWAKE** if the recording status offers it before you start driving;
 - keep the page visible because iOS can suspend browser sensors in the background.
+
+The app requests Screen Wake Lock from the Start button's user gesture and uses a muted video fallback for browsers without the API. iOS can still override both mechanisms because a web page cannot guarantee background execution. For a long trip, set **Settings → Display & Brightness → Auto-Lock → Never** temporarily. A native iOS app would be required for reliable recording after the phone is locked or the browser is suspended.
 
 Trip samples remain in IndexedDB on the device until deleted. Each trip can be exported as CSV or JSON.
 
 ## Optional public sharing and benchmark
 
-Public sharing is opt-in. A shared record contains the car name, aggregate noise statistics, 10 km/h speed-band statistics, and the noise/vibration samples needed to replay the graph. GPS coordinates, headings, altitude, exact recording timestamps, and raw microphone data are not published.
+Public sharing is opt-in. A shared record contains the car name, recording-device label, aggregate noise statistics, 10 km/h speed-band statistics, and the noise/vibration samples needed to replay the graph. GPS coordinates, headings, altitude, exact recording timestamps, and raw microphone data are not published.
 
 To enable it:
 
 1. Create a Supabase project.
 2. Run [`supabase.sql`](./supabase.sql) in the Supabase SQL Editor.
+   If the table already exists, run the script again so it adds the `recording_device` column.
 3. In **Project Settings → Data API**, expose the `roadnoise_shared` table if your project does not expose new public tables automatically.
 4. Copy the project URL and publishable/anon key into [`config.js`](./config.js), then commit and redeploy.
 

@@ -10,11 +10,51 @@
   const KEEP_AWAKE_VIDEO = "data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAL/bW9vdgAAAGxtdmhkAAAAAAAAAAAAAAAAAAAD6AAAA+gAAQAAAQAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAil0cmFrAAAAXHRraGQAAAADAAAAAAAAAAAAAAABAAAAAAAAA+gAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAABAAAAAAAIAAAACAAAAAAAkZWR0cwAAABxlbHN0AAAAAAAAAAEAAAPoAAAAAAABAAAAAAGhbWRpYQAAACBtZGhkAAAAAAAAAAAAAAAAAABAAAAAQABVxAAAAAAALWhkbHIAAAAAAAAAAHZpZGUAAAAAAAAAAAAAAABWaWRlb0hhbmRsZXIAAAABTG1pbmYAAAAUdm1oZAAAAAEAAAAAAAAAAAAAACRkaW5mAAAAHGRyZWYAAAAAAAAAAQAAAAx1cmwgAAAAAQAAAQxzdGJsAAAAqHN0c2QAAAAAAAAAAQAAAJhhdmMxAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAIAAgBIAAAASAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP//AAAAMmF2Y0MBZAAK/+EAGWdkAAqs2V+IiMBEAAADAAQAAAMACDxIllgBAAZo6+PLIsAAAAAQcGFzcAAAAAEAAAABAAAAGHN0dHMAAAAAAAAAAQAAAAEAAEAAAAAAHHN0c2MAAAAAAAAAAQAAAAEAAAABAAAAAQAAABRzdHN6AAAAAAAAArcAAAABAAAAFHN0Y28AAAAAAAAAAQAAAy8AAABidWR0YQAAAFptZXRhAAAAAAAAACFoZGxyAAAAAAAAAABtZGlyYXBwbAAAAAAAAAAAAAAAAC1pbHN0AAAAJal0b28AAAAdZGF0YQAAAAEAAAAATGF2ZjU4LjI5LjEwMAAAAAhmcmVlAAACv21kYXQAAAKfBgX//5vcRem95tlIt5Ys2CDZI+7veDI2NCAtIGNvcmUgMTUyIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNyAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTEgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAQZYiEABX//vfJ78Cm69vfgQ==";
 
   const $ = (selector) => document.querySelector(selector);
+  function detectDeviceLabel() {
+    const userAgent = navigator.userAgent || "";
+    const device = /iPad/i.test(userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+      ? "iPad"
+      : /iPhone/i.test(userAgent)
+        ? "iPhone"
+        : /Android/i.test(userAgent)
+          ? "Android device"
+          : /Macintosh/i.test(userAgent)
+            ? "Mac"
+            : /Windows/i.test(userAgent)
+              ? "Windows PC"
+              : "Unknown device";
+    const browser = /CriOS/i.test(userAgent)
+      ? "Chrome iOS"
+      : /FxiOS/i.test(userAgent)
+        ? "Firefox iOS"
+        : /EdgiOS/i.test(userAgent)
+          ? "Edge iOS"
+          : /OPiOS/i.test(userAgent)
+            ? "Opera iOS"
+            : /Edg\//i.test(userAgent)
+              ? "Edge"
+              : /OPR\//i.test(userAgent)
+                ? "Opera"
+                : /Firefox\//i.test(userAgent)
+                  ? "Firefox"
+                  : /Chrome\//i.test(userAgent)
+                    ? "Chrome"
+                    : /Safari\//i.test(userAgent)
+                      ? "Safari"
+                      : "Browser";
+    const iosVersion = userAgent.match(/OS ([\d_]+) like Mac OS X/i)?.[1]?.replaceAll("_", ".");
+    const androidVersion = userAgent.match(/Android ([\d.]+)/i)?.[1];
+    const macVersion = userAgent.match(/Mac OS X ([\d_]+)/i)?.[1]?.replaceAll("_", ".");
+    const os = iosVersion ? `iOS ${iosVersion}` : androidVersion ? `Android ${androidVersion}` : macVersion ? `macOS ${macVersion}` : "";
+    return [device, browser, os].filter(Boolean).join(" · ");
+  }
   const elements = {
     body: document.body,
     recordButton: $("#record-button"),
     statusText: $("#status-text"),
     timer: $("#timer"),
+    wakeButton: $("#wake-button"),
+    deviceLabel: $("#device-label"),
     db: $("#db-reading"),
     level: $("#level-label"),
     gauge: $("#gauge-fill"),
@@ -34,6 +74,7 @@
     resultsDialog: $("#results-dialog"),
     resultsTitle: $("#results-title"),
     resultsDate: $("#results-date"),
+    resultsDevice: $("#results-device"),
     resultsAverage: $("#results-average"),
     resultsP95: $("#results-p95"),
     resultsMax: $("#results-max"),
@@ -72,6 +113,7 @@
   let latestMotion = null;
   let recentDbReadings = [];
   let calibrationOffset = Number(localStorage.getItem("roadnoise-calibration") || 100);
+  let recordingDevice = localStorage.getItem("roadnoise-device-label") || detectDeviceLabel();
   let toastTimer;
 
   function openDatabase() {
@@ -276,6 +318,17 @@
     );
   }
 
+  function updateWakeUi(screenAwake = Boolean(wakeLock || keepAwakeMethod)) {
+    if (!session) {
+      elements.wakeButton.hidden = true;
+      return;
+    }
+    elements.wakeButton.hidden = screenAwake;
+    elements.statusText.textContent = screenAwake
+      ? "Recording trip · screen awake"
+      : "Recording trip · tap KEEP SCREEN AWAKE";
+  }
+
   async function requestKeepAwake() {
     if (keepAwakeMethod === "video" || wakeLock) return true;
     let videoPlayback;
@@ -284,11 +337,24 @@
         keepAwakeVideo = document.createElement("video");
         keepAwakeVideo.setAttribute("aria-hidden", "true");
         keepAwakeVideo.setAttribute("playsinline", "");
+        keepAwakeVideo.setAttribute("webkit-playsinline", "");
         keepAwakeVideo.muted = true;
         keepAwakeVideo.loop = true;
         keepAwakeVideo.preload = "auto";
         keepAwakeVideo.src = KEEP_AWAKE_VIDEO;
-        keepAwakeVideo.style.cssText = "position:fixed;width:1px;height:1px;opacity:.01;pointer-events:none;left:-10px;bottom:-10px";
+        keepAwakeVideo.style.cssText = "position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;bottom:0";
+        keepAwakeVideo.addEventListener("pause", () => {
+          if (session && keepAwakeMethod === "video") {
+            keepAwakeMethod = null;
+            updateWakeUi(false);
+          }
+        });
+        keepAwakeVideo.addEventListener("error", () => {
+          if (session && keepAwakeMethod === "video") {
+            keepAwakeMethod = null;
+            updateWakeUi(false);
+          }
+        });
         document.body.append(keepAwakeVideo);
       }
       // Called from the Start button path so iOS treats this as user-initiated media.
@@ -302,7 +368,9 @@
         keepAwakeMethod = "native";
         wakeLock.addEventListener("release", () => {
           wakeLock = null;
-          if (session && document.visibilityState === "visible") requestKeepAwake();
+          if (!session) return;
+          updateWakeUi(false);
+          if (document.visibilityState === "visible") requestKeepAwake().then(updateWakeUi).catch(() => updateWakeUi(false));
         });
         keepAwakeVideo?.pause();
         keepAwakeVideo?.remove();
@@ -314,7 +382,7 @@
     }
     const videoStarted = await videoPlayback;
     keepAwakeMethod = videoStarted ? "video" : null;
-    if (!videoStarted) showToast("Screen lock is unavailable. Set iPhone Auto-Lock to Never for long trips.");
+    if (!videoStarted) showToast("Screen lock is unavailable. Tap KEEP SCREEN AWAKE or set Auto-Lock to Never.");
     return videoStarted;
   }
 
@@ -508,6 +576,7 @@
     const maximum = data.summary?.maxDb ?? (values.length ? Math.max(...values) : null);
     elements.resultsTitle.textContent = data.complete ? "Road measurement" : "Recovered measurement";
     elements.resultsDate.textContent = `${new Date(data.startedAt).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })} · ${formatDuration(data.durationMs)}`;
+    elements.resultsDevice.textContent = `Recorded on ${data.recordingDevice || "device not specified"}`;
     elements.resultsAverage.textContent = average == null ? "--" : Math.round(average);
     elements.resultsP95.textContent = percentile(values, .95) == null ? "--" : Math.round(percentile(values, .95));
     elements.resultsMax.textContent = maximum == null ? "--" : Math.round(maximum);
@@ -541,6 +610,8 @@
     elements.recordButton.disabled = true;
     elements.statusText.textContent = "Requesting access…";
 
+    // Start this before any permission prompt or await so iOS preserves the tap's user activation.
+    const keepAwakeAttempt = requestKeepAwake();
     const motionPermission = requestMotionAccess();
     startLocation();
     try {
@@ -565,6 +636,7 @@
         durationMs: 0,
         complete: false,
         calibrationOffset,
+        recordingDevice,
         userAgent: navigator.userAgent,
         samples: [],
         summary: null,
@@ -576,8 +648,8 @@
       elements.recordButton.disabled = false;
       analyzeAudio();
       sampleTimer = setInterval(addSample, SAMPLE_INTERVAL);
-      const screenAwake = await requestKeepAwake();
-      elements.statusText.textContent = screenAwake ? "Recording trip · screen awake" : "Recording trip · keep screen on";
+      const screenAwake = await keepAwakeAttempt;
+      updateWakeUi(screenAwake);
       saveSession(session).catch(() => {});
     } catch (error) {
       cleanupSensors();
@@ -605,6 +677,8 @@
     wakeLock = null;
     keepAwakeVideo = null;
     keepAwakeMethod = null;
+    elements.wakeButton.hidden = true;
+    elements.wakeButton.disabled = false;
   }
 
   async function stopSession() {
@@ -640,9 +714,14 @@
     return `roadnoise-${data.startedAt.replaceAll(":", "-").replace(".000Z", "Z")}.${extension}`;
   }
 
+  function csvCell(value) {
+    const text = String(value ?? "");
+    return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+  }
+
   function exportCsv(data) {
-    const headers = ["timestamp", "elapsed_seconds", "estimated_db", "dbfs", "speed_kmh", "vibration_ms2", "latitude", "longitude", "gps_accuracy_m"];
-    const rows = data.samples.map((sample) => [sample.timestamp, sample.elapsedSeconds, sample.db, sample.dbfs, sample.speedKmh, sample.vibrationMs2, sample.latitude, sample.longitude, sample.gpsAccuracyM].map((value) => value ?? "").join(","));
+    const headers = ["timestamp", "elapsed_seconds", "estimated_db", "dbfs", "speed_kmh", "vibration_ms2", "latitude", "longitude", "gps_accuracy_m", "recording_device"];
+    const rows = data.samples.map((sample) => [sample.timestamp, sample.elapsedSeconds, sample.db, sample.dbfs, sample.speedKmh, sample.vibrationMs2, sample.latitude, sample.longitude, sample.gpsAccuracyM, data.recordingDevice].map(csvCell).join(","));
     downloadFile(sessionFilename(data, "csv"), `${headers.join(",")}\n${rows.join("\n")}`, "text/csv;charset=utf-8");
   }
 
@@ -664,6 +743,7 @@
       headers: { Prefer: "return=representation" },
       body: JSON.stringify({
         car_name: carName.trim(),
+        recording_device: data.recordingDevice || null,
         duration_seconds: Math.max(1, Math.round(data.durationMs / 1000)),
         sample_count: publicSamples.length,
         average_db: Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1)),
@@ -682,6 +762,7 @@
       startedAt: record.created_at,
       durationMs: record.duration_seconds * 1000,
       complete: true,
+      recordingDevice: record.recording_device || "",
       samples: record.samples || [],
       summary: { avgDb: Number(record.average_db), p95Db: Number(record.p95_db), maxDb: Number(record.max_db) },
     };
@@ -693,7 +774,7 @@
       return;
     }
     try {
-      const rows = await supabaseRequest(`roadnoise_shared?select=id,created_at,duration_seconds,average_db,p95_db,max_db,samples&share_code=eq.${encodeURIComponent(code)}&limit=1`);
+      const rows = await supabaseRequest(`roadnoise_shared?select=id,created_at,duration_seconds,average_db,p95_db,max_db,recording_device,samples&share_code=eq.${encodeURIComponent(code)}&limit=1`);
       if (!rows?.length) throw new Error("Shared recording not found.");
       showResults(publicRecordToSession(rows[0]));
     } catch (error) {
@@ -709,7 +790,7 @@
       return;
     }
     try {
-      const records = await supabaseRequest("roadnoise_shared?select=id,share_code,car_name,created_at,duration_seconds,sample_count,average_db,p95_db,max_db&order=created_at.desc&limit=100");
+      const records = await supabaseRequest("roadnoise_shared?select=id,share_code,car_name,recording_device,created_at,duration_seconds,sample_count,average_db,p95_db,max_db&order=created_at.desc&limit=100");
       const filter = elements.benchmarkSearch.value.trim().toLowerCase();
       const filtered = records.filter((record) => !filter || record.car_name.toLowerCase().includes(filter));
       elements.benchmarkNote.textContent = `${filtered.length} public measurement${filtered.length === 1 ? "" : "s"} · GPS coordinates are never published.`;
@@ -720,9 +801,10 @@
       filtered.forEach((record) => {
         const card = document.createElement("article");
         card.className = "benchmark-card";
-        card.innerHTML = `<div class="benchmark-card-head"><div><h2></h2><time></time></div><span class="sample-count">${record.sample_count} samples</span></div><div class="benchmark-stats"><div><span>AVERAGE</span><strong>${Math.round(record.average_db)} dB</strong></div><div><span>P95</span><strong>${Math.round(record.p95_db)} dB</strong></div><div><span>MAXIMUM</span><strong>${Math.round(record.max_db)} dB</strong></div></div><button class="share-link" type="button">VIEW RECORDING</button>`;
+        card.innerHTML = `<div class="benchmark-card-head"><div><h2></h2><time></time><small class="benchmark-device"></small></div><span class="sample-count">${record.sample_count} samples</span></div><div class="benchmark-stats"><div><span>AVERAGE</span><strong>${Math.round(record.average_db)} dB</strong></div><div><span>P95</span><strong>${Math.round(record.p95_db)} dB</strong></div><div><span>MAXIMUM</span><strong>${Math.round(record.max_db)} dB</strong></div></div><button class="share-link" type="button">VIEW RECORDING</button>`;
         card.querySelector("h2").textContent = record.car_name;
         card.querySelector("time").textContent = new Date(record.created_at).toLocaleDateString([], { dateStyle: "medium" });
+        card.querySelector(".benchmark-device").textContent = record.recording_device || "Device not specified";
         card.querySelector(".share-link").addEventListener("click", () => {
           window.location.href = `${window.location.pathname}?share=${encodeURIComponent(record.share_code)}`;
         });
@@ -748,7 +830,7 @@
       const average = data.summary?.avgDb == null ? "--" : Math.round(data.summary.avgDb);
       const max = data.summary?.maxDb == null ? "--" : Math.round(data.summary.maxDb);
       card.innerHTML = `
-        <div class="trip-card-head"><div><h2>${data.complete ? "Road measurement" : "Recovered measurement"}</h2><time datetime="${data.startedAt}">${date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</time></div></div>
+        <div class="trip-card-head"><div><h2>${data.complete ? "Road measurement" : "Recovered measurement"}</h2><time datetime="${data.startedAt}">${date.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</time><small class="trip-device"></small></div></div>
         <div class="trip-card-stats"><div><span>DURATION</span><strong>${formatDuration(data.durationMs)}</strong></div><div><span>AVERAGE</span><strong>${average} dB</strong></div><div><span>MAXIMUM</span><strong>${max} dB</strong></div></div>
         <div class="trip-actions"><button type="button" data-action="review">REVIEW</button><button type="button" data-action="csv">CSV</button><button type="button" data-action="json">JSON</button><button class="delete-trip" type="button" data-action="delete" aria-label="Delete trip">×</button></div>`;
       card.addEventListener("click", async (event) => {
@@ -762,6 +844,7 @@
           showToast("Trip deleted.");
         }
       });
+      card.querySelector(".trip-device").textContent = data.recordingDevice || "Device not specified";
       elements.tripList.append(card);
     });
   }
@@ -776,6 +859,13 @@
   }
 
   elements.recordButton.addEventListener("click", () => session ? stopSession() : startSession());
+  elements.wakeButton.addEventListener("click", async () => {
+    if (!session) return;
+    elements.wakeButton.disabled = true;
+    const screenAwake = await requestKeepAwake();
+    updateWakeUi(screenAwake);
+    elements.wakeButton.disabled = false;
+  });
   document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => switchView(button.dataset.view)));
   $("#settings-button").addEventListener("click", () => elements.dialog.showModal());
   $("#calibrate-link").addEventListener("click", () => elements.dialog.showModal());
@@ -848,16 +938,24 @@
   elements.dialog.addEventListener("close", () => {
     if (elements.dialog.returnValue === "save") {
       localStorage.setItem("roadnoise-calibration", String(calibrationOffset));
-      if (session) session.calibrationOffset = calibrationOffset;
-      showToast("Calibration saved.");
+      recordingDevice = elements.deviceLabel.value.trim() || detectDeviceLabel();
+      localStorage.setItem("roadnoise-device-label", recordingDevice);
+      if (session) {
+        session.calibrationOffset = calibrationOffset;
+        session.recordingDevice = recordingDevice;
+      }
+      showToast("Calibration and device label saved.");
     } else {
       calibrationOffset = Number(localStorage.getItem("roadnoise-calibration") || 100);
       elements.offset.value = String(calibrationOffset);
       elements.offsetOutput.textContent = `+${calibrationOffset} dB`;
+      elements.deviceLabel.value = recordingDevice;
     }
   });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && session && !wakeLock && keepAwakeMethod !== "video") requestKeepAwake();
+    if (document.visibilityState === "visible" && session && !wakeLock && keepAwakeMethod !== "video") {
+      requestKeepAwake().then(updateWakeUi).catch(() => updateWakeUi(false));
+    }
   });
   window.addEventListener("resize", () => {
     drawChart();
@@ -869,6 +967,7 @@
 
   elements.offset.value = String(calibrationOffset);
   elements.offsetOutput.textContent = `+${calibrationOffset} dB`;
+  elements.deviceLabel.value = recordingDevice;
   renderTrips();
   const sharedCode = new URLSearchParams(window.location.search).get("share");
   if (sharedCode) loadSharedRecording(sharedCode);

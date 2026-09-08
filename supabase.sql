@@ -7,6 +7,7 @@ create table if not exists public.roadnoise_shared (
   id uuid primary key default gen_random_uuid(),
   share_code text not null unique default encode(gen_random_bytes(8), 'hex'),
   car_name text not null check (char_length(btrim(car_name)) between 1 and 80),
+  recording_device text check (recording_device is null or char_length(btrim(recording_device)) between 1 and 80),
   duration_seconds integer not null check (duration_seconds between 1 and 86400),
   sample_count integer not null check (sample_count between 1 and 20000),
   average_db numeric(5, 1) not null check (average_db between 0 and 140),
@@ -17,6 +18,12 @@ create table if not exists public.roadnoise_shared (
   created_at timestamptz not null default now(),
   constraint roadnoise_shared_samples_size check (jsonb_array_length(samples) <= 20000)
 );
+
+-- Keep this migration safe to rerun for projects that created the table before device metadata was added.
+alter table public.roadnoise_shared add column if not exists recording_device text;
+alter table public.roadnoise_shared drop constraint if exists roadnoise_shared_recording_device_check;
+alter table public.roadnoise_shared add constraint roadnoise_shared_recording_device_check
+  check (recording_device is null or char_length(btrim(recording_device)) between 1 and 80);
 
 alter table public.roadnoise_shared enable row level security;
 
